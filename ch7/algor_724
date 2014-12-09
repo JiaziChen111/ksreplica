@@ -1,0 +1,8 @@
+n_hh = 1e5;
+periods = 1000;
+shocks_e = rand(n_hh,periods);
+shocks_u = rand(n_hh,periods);
+e_sim = ones(n_hh,periods);
+a_sim = zeros(n_hh,periods);
+
+
