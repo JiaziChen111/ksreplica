@@ -7,34 +7,47 @@ clc
 aalpha = 0.36;
 eeta = 2.0;
 bbeta = 0.995;
+xxi = 0.25;
+ddelta = 0.005;
+
+w = 4.7;
+ttau = 0.015; % as an initial guess
+b = xxi*(1-ttau)*w;
+
 P = [0.5,0.5;0.0435,0.9565];
 u = 1; e = 2;
-b = 1.199;
-ddelta = 0.005;
 
 %% Accuracy control
 tol = 1e-5;
-n_coarse = 2501;
-n_fine = 5001;
+n_coarse = 201;
+n_fine = 603;
+n_K = 6;
 
 %% Main Boday
-% Step 1
-N = 0.92; % stationary employment rate
-kss = (aalpha/(1/bbeta-1+ddelta))^(1/(1-aalpha))*N;
-fine_grid = linspace(-2,1500,n_fine);
-coarse_grid = linspace(-2,1500,n_coarse);
+% Step 0
+fine_grid = linspace(-2,3000,n_fine);
+coarse_grid = linspace(-2,300,n_coarse);
+K_grid = linspace(40,400,n_K);
+[a_mesh,K_mesh] = meshgrid(coarse_grid,K_grid);
+
+% Step 1 Initiaze capital distribution
+[~,i_right] = min(abs(fine_grid-300));
+f_old = zeros(1,n_fine);
+f_old(1:i_right) = 1/i_right;
+F_old = cumsum(f_old);
+K_old= sum(f_old.*fine_grid);
+
+ggamma0 = 0.09; ggamma1 = 0.95;
 
 % Step 2 - 8
 err = 10;
-K = kss; ttau = 0.017;
 existence = 0;
 iter = 0;
 while err > tol
     % Step 3
-    w = (1-aalpha)*(K/N)^aalpha;
-    r = aalpha*(K/N)^(aalpha-1)-ddelta;
     
     % Step 4
+    initialize_valuefunction;
     get_decision;
     
     % Step 5, 7.22
