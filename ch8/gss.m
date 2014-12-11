@@ -6,7 +6,7 @@ B = p*A + (1-p)*D;
 C = (1-p)*A + p*D;
 f_B = fn(B); f_C = fn(C);
 
-epsilon = 1e-4;
+epsilon = 1e-3;
 dist = 10;
 while dist > epsilon*max(1,abs(B)+abs(C))
     if f_B > f_C

@@ -19,14 +19,14 @@ u = 1; e = 2;
 
 %% Accuracy control
 tol = 1e-5;
-n_coarse = 201;
+n_coarse = 301;
 n_fine = 603;
-n_K = 6;
+n_K = 8;
 
 %% Main Boday
 % Step 0
 fine_grid = linspace(-2,3000,n_fine);
-coarse_grid = linspace(-2,300,n_coarse);
+coarse_grid = linspace(-2,3000,n_coarse);
 K_grid = linspace(140,340,n_K);
 [a_mesh,K_mesh] = meshgrid(coarse_grid,K_grid);
 
@@ -46,13 +46,15 @@ iter = 0;
 while err > tol
     % Step 3
 
-    
     % Step 4
     initialize_valuefunction;
     get_decision;
     
     % Step 5, 7.22
-    algor_724;
+    simulate_forward;
+    
+    % Regress to update ggamma
+    
     
     % Maybe normalization here to guarantee sums to one
     
