@@ -8,7 +8,8 @@ nx = 7; % number of grid points on idiosyncractic prod.
 nK = 50; % ... on aggregate capital level
 m = 3; % support is m s.d. away from mean
 nq = 30;
-tol = 1e-5;
+tol = 1e-4;
+damp = 0.5;
 
 %% Grids
 % ssigmagrid = [0.8;1.2];
@@ -21,7 +22,12 @@ w = 3.63; % wage, taken as given, calibrated from ig_calibration_10_4
 %% Pretend everything else is solved
 q_old = ones(nK,1);
 q_grid = linspace(0.1,10,nq);
-ttheta_old = 0.1*ones(nK,1);
+pphi_tthetaC = log(0.1);
+pphi_tthetaK = 0;
+ttheta_old = q_old;
+for i_K = 1:nK
+    ttheta_old(i_K) = exp(pphi_tthetaC+pphi_tthetaK*log(K(i_K)));
+end
 mmu_old = 1./(1+ttheta_old.^(-aalpha0)).^(1/aalpha0);
 pphi_KK = 0.99; pphi_KC = 0.1; % Aggregate Law of motion for aggregate capital
 
@@ -150,6 +156,7 @@ T = 1000;
 N = 1000;
 kss = 10;
 Ksim = kss*ones(1,T);
+tthetasim = zeros(1,T);
 
 dist_k_now = kss*ones(N,1);
 dist_k_tmr = dist_k_now;
@@ -159,6 +166,7 @@ dist_kind_tmr = dist_kind_now;
 dist_xind_now = ceil(nx/2)*ones(N,1);
 dist_xind_tmr = ceil(nx/2)*ones(N,1);
 x_cdf = cumsum(PX,2);
+activesim = zeros(N,1);
 
 for t = 1:T
     [~,i_K] = min(abs(Ksim(t)-K));
@@ -170,25 +178,31 @@ for t = 1:T
         i_k = dist_kind_now(i);
         dist_kind_tmr(i) = koptind(i_k,i_x,i_K);
         dist_k_tmr(i) = K(dist_kind_tmr(i));
+        activesim(i) = active(i_k,i_x,i_K);
     end
     if t < T
         Ksim(t+1) = sum(dist_k_tmr,1)/N;
     end
     
-    % Find the optimal q this period
-    
-    
+    % Find the ttheta, the measure of active firms as a function of agg. K
+    tthetasim(t) = sum(activesim);
     
     % Get ready for next period
     dist_k_now = dist_k_tmr;
     dist_xind_now = dist_xind_tmr;
     dist_kind_now = dist_kind_tmr;
     disp(t);
+    disp(tthetasim(t));
 end
 
 % Regress to get coefficients
 X = [ones(T-1,1) log(Ksim(1:T-1))'];
-Y = [log(Ksim(2:T)')];
+Y = log(Ksim(2:T)');
 bbeta = (X'*X)\(X'*Y);
-pphi_KC = bbeta(1); pphi_KK = bbeta(2);
+pphi_KC_new = damp*bbeta(1)+(1-damp)*pphi_KC; pphi_KK_new = damp*bbeta(2)+(1-damp)*pphi_KK;
 
+Y = log(tthetasim(2:T))';
+bbeta = (X'*X)\(X'*Y);
+pphi_tthetaC_new = damp*bbeta(1)+(1-damp)*pphi_tthetaC; pphi_tthetaK_new = damp*bbeta(2)+(1-damp)*pphi_tthetaK;
+
+diff = norm([pphi_KC,pphi_KK,pphi_tthetaC,pphi_tthetaK]-[pphi_KC_new,pphi_KK_new,pphi_tthetaC_new,pphi_tthetaK_new],Inf);
