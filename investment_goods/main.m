@@ -3,9 +3,9 @@ clear; close all; clc;
 deep_para; % load parameters
 
 %% Accuracy control 
-nk = 50; % number of grid points on capital stock
-nx = 7; % number of grid points on idiosyncractic prod.
-nK = 50; % ... on aggregate capital level
+nk = 250; % number of grid points on capital stock
+nx = 11; % number of grid points on idiosyncractic prod.
+nK = 250; % ... on aggregate capital level
 m = 3; % support is m s.d. away from mean
 nq = 30;
 tol = 1e-4;
@@ -16,7 +16,7 @@ damp = 0.5;
 % Pssigma = 0.5*ones(2,2);
 [X,PX] = tauchen(nx,0,rrhox,ssigmax,m);
 X = exp(X); % Convert back to level
-K = linspace(0.5*10,2*10,nk)'; % calibrated from ig_calibration_10_4
+K = linspace(0.2,100,nk)'; % calibrated from ig_calibration_10_4
 w = 3.63; % wage, taken as given, calibrated from ig_calibration_10_4
 
 %% Pretend everything else is solved
