@@ -88,6 +88,7 @@ end
 revenue = zeros(nq,1);
 uu = rand(N,T);
 
+tic
 %% Main Body of KS iter
 diff = 10;
 outer_iter = 0;
@@ -136,8 +137,8 @@ while diff > tol
         W_old = W_new;
         U_old = U_new;
         iter = iter + 1;
-        disp(iter);
-        disp(err);
+        % disp(iter);
+        % disp(err);
     end
     
     % When converged, find policy functions
@@ -199,8 +200,8 @@ while diff > tol
         dist_k_now = dist_k_tmr;
         dist_xind_now = dist_xind_tmr;
         dist_kind_now = dist_kind_tmr;
-        disp(t);
-        disp(tthetasim(t));
+        % disp(t);
+        % disp(tthetasim(t));
     end
     
     % update kss
@@ -241,5 +242,6 @@ while diff > tol
     disp('============');
 
 end
+toc
 
 save main.mat
