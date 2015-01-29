@@ -122,7 +122,7 @@ while diff > tol
                 %====================================================%
                 %==== Vectorized ====================================%
                 for i_x = 1:nx
-                    [max_movingpart(:,i_x),koptind_active(:,i_x,i_K,i_q)] = max(bbeta*repmat(EV(:,i_x)',nk,1) - q*inv_mat.*pos_inv + 0.1*q*inv_mat.*neg_inv,[],2);
+                    [max_movingpart(:,i_x),koptind_active(:,i_x,i_K,i_q)] = max(bbeta*repmat(EV(:,i_x)',nk,1) - q*inv_mat.*pos_inv - 0.1*q*inv_mat.*neg_inv,[],2);
                 end
                 W_new(:,:,i_K,i_q) = profit + mmu*max_movingpart - ttau + bbeta*(1-mmu)*EV(noinvest_ind,:);
                 
