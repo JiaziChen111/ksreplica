@@ -19,7 +19,7 @@ X = exp(X);% Convert back to level
 uncond_X = PX^3000;
 
 % Capital stuff
-K = linspace(2,20,nk)'; % calibrated from ig_calibration_10_4
+K = linspace(5,40,nk)'; % calibrated from ig_calibration_10_4
 noinvest_ind = ones(nk,1); % for each k, the index of tmr k if no invest
 for i_k = 1:nk
     [~,noinvest_ind(i_k)] = min(abs(K-(1-ddelta)*K(i_k)));
@@ -72,7 +72,7 @@ end
 % Prepare for Simulation stuff
 T = 1000;
 N = 1000;
-burnin = 500;
+burnin = 100;
 kss = 10;
 Ksim = kss*ones(1,T);
 qsim = mean(q_grid)*ones(1,T);
