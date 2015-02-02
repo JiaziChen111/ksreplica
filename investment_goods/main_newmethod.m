@@ -1,11 +1,12 @@
 %% Housekeeping
 clear; close all; clc;
 deep_para; % load parameters
+resale = 0.0;
 
 %% Accuracy control
-nk = 40; % number of grid points on capital stock
+nk = 30; % number of grid points on capital stock
 nx = 7; % number of grid points on idiosyncractic prod.
-nK = 40; % ... on aggregate capital level
+nK = 30; % ... on aggregate capital level
 nq = 10;
 m = 3; % support is m s.d. away from mean
 tol = 1e-2;
@@ -19,7 +20,7 @@ X = exp(X);% Convert back to level
 uncond_X = PX^3000;
 
 % Capital stuff
-K = linspace(5,40,nk)'; % calibrated from ig_calibration_10_4
+K = linspace(5,100,nk)'; % calibrated from ig_calibration_10_4
 noinvest_ind = ones(nk,1); % for each k, the index of tmr k if no invest
 for i_k = 1:nk
     [~,noinvest_ind(i_k)] = min(abs(K-(1-ddelta)*K(i_k)));
@@ -29,7 +30,7 @@ inv_mat = repmat(K',nk,1)-(1-ddelta)*repmat(K,1,nk);
 pos_inv = inv_mat>0;
 neg_inv = inv_mat<=0;
 
-q_grid = linspace(0.1,1.1,nq); % grid for current q
+q_grid = linspace(0.05,0.2,nq); % grid for current q
 pphi_qC = log(0.1);
 pphi_qK = 0; % aggregate prediction rule for q
 q_old = ones(nK,1);
@@ -100,7 +101,7 @@ while diff > tol
         for i_K = 1:nK
             % Predict future aggregate variable
             [Kplus,i_Kplus] = min(abs(K-exp(pphi_KC+pphi_KK*log(K(i_K)))));
-            [qplus,i_qplus] = min(abs(K-exp(pphi_qC+pphi_qK*log(K(i_K)))));
+            [qplus,i_qplus] = min(abs(q_grid-exp(pphi_qC+pphi_qK*log(K(i_K)))));
             
             ttheta = ttheta_old(i_K);
             mmu = mmu_old(i_K);
@@ -123,7 +124,7 @@ while diff > tol
                 %====================================================%
                 %==== Vectorized ====================================%
                 for i_x = 1:nx
-                    [max_movingpart(:,i_x),koptind_active(:,i_x,i_K,i_q)] = max(bbeta*repmat(EV(:,i_x)',nk,1) - q*inv_mat.*pos_inv - 0.1*q*inv_mat.*neg_inv,[],2);
+                    [max_movingpart(:,i_x),koptind_active(:,i_x,i_K,i_q)] = max(bbeta*repmat(EV(:,i_x)',nk,1) - q*inv_mat.*pos_inv - resale*q*inv_mat.*neg_inv,[],2);
                 end
                 W_new(:,:,i_K,i_q) = profit + mmu*max_movingpart - ttau + bbeta*(1-mmu)*EV(noinvest_ind,:);
                 
@@ -137,8 +138,10 @@ while diff > tol
         W_old = W_new;
         U_old = U_new;
         iter = iter + 1;
-        % disp(iter);
-        % disp(err);
+        if mod(iter,100) == 0
+        disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,diff,iter,err);
+        disp(disp_text);
+        end
     end
     
     % When converged, find policy functions
@@ -211,16 +214,25 @@ while diff > tol
     X = [ones(T-burnin-1,1) log(Ksim(burnin+1:T-1))'];
     Y = log(Ksim(2+burnin:T)');
     bbeta_K = (X'*X)\(X'*Y);
+    e = Y-X*bbeta_K;
+    ytilde = Y-mean(Y);
+    Rsq_K = 1-(e'*e)/(ytilde'*ytilde);
     pphi_KC_new = damp*bbeta_K(1)+(1-damp)*pphi_KC; pphi_KK_new = damp*bbeta_K(2)+(1-damp)*pphi_KK;
     
     % Regress to get ttheta law
-    Y = log(tthetasim(2+burnin:T)+1e-10)';
+    Y = log(tthetasim(1+burnin:T-1))';
     bbeta_ttheta = (X'*X)\(X'*Y);
+    e = Y-X*bbeta_K;
+    ytilde = Y-mean(Y);
+    Rsq_ttheta = 1-(e'*e)/(ytilde'*ytilde);      
     pphi_tthetaC_new = damp*bbeta_ttheta(1)+(1-damp)*pphi_tthetaC; pphi_tthetaK_new = damp*bbeta_ttheta(2)+(1-damp)*pphi_tthetaK;
     
     % Regress to get q law
-    Y = log(qsim(2+burnin:T))';
+    Y = log(qsim(1+burnin:T-1))';
     bbeta_q = (X'*X)\(X'*Y);
+    e = Y-X*bbeta_K;
+    ytilde = Y-mean(Y);
+    Rsq_q = 1-(e'*e)/(ytilde'*ytilde);      
     pphi_qC_new = damp*bbeta_q(1)+(1-damp)*pphi_qC; pphi_qK_new = damp*bbeta_q(2)+(1-damp)*pphi_qK;
     
     diff = norm([pphi_KC,pphi_KK,pphi_tthetaC,pphi_tthetaK,pphi_qC,pphi_qK]-[pphi_KC_new,pphi_KK_new,pphi_tthetaC_new,pphi_tthetaK_new,pphi_qC_new,pphi_qK_new],Inf);
@@ -233,13 +245,16 @@ while diff > tol
         ttheta_old(i_K) = exp(pphi_tthetaC+pphi_tthetaK*log(K(i_K)));
     end
     mmu_old = 1./(1+ttheta_old.^(-aalpha0)).^(1/aalpha0);
-    
+        
     outer_iter = outer_iter + 1;
-    
-    disp('============');
-    disp(outer_iter);
-    disp(diff);
-    disp('============');
+    disp_text = sprintf('Rsq_K = %d, Rsq_ttheta = %d, Rsq_q = %d',Rsq_K,Rsq_ttheta,Rsq_q);
+    disp(disp_text);
+    disp_text = sprintf('log(q) = %d + %d * log(K)',pphi_qC,pphi_qK);
+    disp(disp_text);
+    disp_text = sprintf('log(ttheta) = %d + %d * log(K)',pphi_tthetaC,pphi_tthetaK);
+    disp(disp_text);
+    disp_text = sprintf('log(Kplus) = %d + %d * log(K)',pphi_KC,pphi_KK);
+    disp(disp_text);
 
 end
 toc
