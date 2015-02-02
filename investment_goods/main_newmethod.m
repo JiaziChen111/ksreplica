@@ -222,7 +222,7 @@ while diff > tol
     % Regress to get ttheta law
     Y = log(tthetasim(1+burnin:T-1))';
     bbeta_ttheta = (X'*X)\(X'*Y);
-    e = Y-X*bbeta_K;
+    e = Y-X*bbeta_ttheta;
     ytilde = Y-mean(Y);
     Rsq_ttheta = 1-(e'*e)/(ytilde'*ytilde);      
     pphi_tthetaC_new = damp*bbeta_ttheta(1)+(1-damp)*pphi_tthetaC; pphi_tthetaK_new = damp*bbeta_ttheta(2)+(1-damp)*pphi_tthetaK;
@@ -230,7 +230,7 @@ while diff > tol
     % Regress to get q law
     Y = log(qsim(1+burnin:T-1))';
     bbeta_q = (X'*X)\(X'*Y);
-    e = Y-X*bbeta_K;
+    e = Y-X*bbeta_q;
     ytilde = Y-mean(Y);
     Rsq_q = 1-(e'*e)/(ytilde'*ytilde);      
     pphi_qC_new = damp*bbeta_q(1)+(1-damp)*pphi_qC; pphi_qK_new = damp*bbeta_q(2)+(1-damp)*pphi_qK;
