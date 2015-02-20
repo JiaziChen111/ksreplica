@@ -20,7 +20,7 @@ X = exp(X);% Convert back to level
 uncond_X = PX^3000;
 
 % Capital stuff
-K = linspace(5,100,nk)'; % calibrated from ig_calibration_10_4
+K = linspace(5,300,nk)'; % calibrated from ig_calibration_10_4
 noinvest_ind = ones(nk,1); % for each k, the index of tmr k if no invest
 for i_k = 1:nk
     [~,noinvest_ind(i_k)] = min(abs(K-(1-ddelta)*K(i_k)));
@@ -30,9 +30,11 @@ inv_mat = repmat(K',nk,1)-(1-ddelta)*repmat(K,1,nk);
 pos_inv = inv_mat>0;
 neg_inv = inv_mat<=0;
 
-q_grid = linspace(0.05,0.2,nq); % grid for current q
+q_grid = linspace(0.05,0.15,nq); % grid for current q
 pphi_qC = log(0.1);
-pphi_qK = 0; % aggregate prediction rule for q
+pphi_qK = -5; % aggregate prediction rule for q
+pphi_qK2 = 0;
+pphi_qK3 = 0;
 q_old = ones(nK,1);
 
 pphi_tthetaC = log(0.1); % aggregate prediction rule for ttheta
@@ -101,7 +103,7 @@ while diff > tol
         for i_K = 1:nK
             % Predict future aggregate variable
             [Kplus,i_Kplus] = min(abs(K-exp(pphi_KC+pphi_KK*log(K(i_K)))));
-            [qplus,i_qplus] = min(abs(q_grid-exp(pphi_qC+pphi_qK*log(K(i_K)))));
+            [qplus,i_qplus] = min(abs(q_grid-exp(pphi_qC+pphi_qK*log(K(i_K))+pphi_qK2*(log(K(i_K)))^2+pphi_qK3*(log(K(i_K)))^3)));
             
             ttheta = ttheta_old(i_K);
             mmu = mmu_old(i_K);
@@ -152,6 +154,7 @@ while diff > tol
     
     
     %% Given individual policies, simulate a large panel to update aggregate law of motion
+    Ksim(1) = kss;
     tthetasim = exp(pphi_tthetaC+pphi_tthetaK*log(kss))*ones(1,T);
     dist_k_now = kss*ones(N,1);
     dist_k_tmr = dist_k_now;
@@ -173,7 +176,7 @@ while diff > tol
                 dist_kind_tmr(i) = koptind(i_k,i_x,i_K,i_q);
                 dist_k_tmr(i) = K(dist_kind_tmr(i));
                 activesim(i) = active(i_k,i_x,i_K,i_q);
-                
+                aaa(i,i_q) = active(i_k,i_x,i_K,i_q);
                 % Find revenue from this guy
                 inv = dist_k_tmr(i) - (1-ddelta)*dist_k_now(i);
                 revenue(i_q) = revenue(i_q) + activesim(i)*q_grid(i_q)*inv/N;
@@ -229,18 +232,23 @@ while diff > tol
     
     % Regress to get q law
     Y = log(qsim(1+burnin:T-1))';
+    X = [ones(T-burnin-1,1) log(Ksim(burnin+1:T-1))' (log(Ksim(burnin+1:T-1))').^2 (log(Ksim(burnin+1:T-1))').^3];
+
     bbeta_q = (X'*X)\(X'*Y);
     e = Y-X*bbeta_q;
     ytilde = Y-mean(Y);
     Rsq_q = 1-(e'*e)/(ytilde'*ytilde);      
     pphi_qC_new = damp*bbeta_q(1)+(1-damp)*pphi_qC; pphi_qK_new = damp*bbeta_q(2)+(1-damp)*pphi_qK;
-    
-    diff = norm([pphi_KC,pphi_KK,pphi_tthetaC,pphi_tthetaK,pphi_qC,pphi_qK]-[pphi_KC_new,pphi_KK_new,pphi_tthetaC_new,pphi_tthetaK_new,pphi_qC_new,pphi_qK_new],Inf);
+    pphi_qK2_new = damp*bbeta_q(3)+(1-damp)*pphi_qK2; pphi_qK3_new = damp*bbeta_q(4)+(1-damp)*pphi_qK3;
+
+    diff = norm([pphi_KC,pphi_KK,pphi_tthetaC,pphi_tthetaK,pphi_qC,pphi_qK,pphi_qK2,pphi_qK3]-[pphi_KC_new,pphi_KK_new,pphi_tthetaC_new,pphi_tthetaK_new,pphi_qC_new,pphi_qK_new,pphi_qK2_new,pphi_qK3_new],Inf);
     
     % Update mmu_old as well
     pphi_tthetaC = pphi_tthetaC_new; pphi_tthetaK = pphi_tthetaK_new;
     pphi_KC = pphi_KC_new; pphi_KK = pphi_KK_new;
     pphi_qC = pphi_qC_new; pphi_qK = pphi_qK_new;
+    pphi_qK2 = pphi_qK2_new; pphi_qK3 = pphi_qK3_new;
+    
     for i_K = 1:nK
         ttheta_old(i_K) = exp(pphi_tthetaC+pphi_tthetaK*log(K(i_K)));
     end
@@ -249,7 +257,7 @@ while diff > tol
     outer_iter = outer_iter + 1;
     disp_text = sprintf('Rsq_K = %d, Rsq_ttheta = %d, Rsq_q = %d',Rsq_K,Rsq_ttheta,Rsq_q);
     disp(disp_text);
-    disp_text = sprintf('log(q) = %d + %d * log(K)',pphi_qC,pphi_qK);
+    disp_text = sprintf('log(q) = %d + %d * log(K) + %d * (log(K))^2 + %d * (log(K)^3)',pphi_qC,pphi_qK,pphi_qK2,pphi_qK3);
     disp(disp_text);
     disp_text = sprintf('log(ttheta) = %d + %d * log(K)',pphi_tthetaC,pphi_tthetaK);
     disp(disp_text);

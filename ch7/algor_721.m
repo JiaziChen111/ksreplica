@@ -14,8 +14,8 @@ ddelta = 0.005;
 
 %% Accuracy control
 tol = 1e-5;
-n_coarse = 2501;
-n_fine = 5001;
+n_coarse = 250;
+n_fine = 100;
 
 %% Main Boday
 % Step 1

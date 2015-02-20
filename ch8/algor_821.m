@@ -18,7 +18,7 @@ P = [0.5,0.5;0.0435,0.9565];
 u = 1; e = 2;
 
 %% Accuracy control
-tol = 1e-5;
+tol = 1e-3;
 n_coarse = 301;
 n_fine = 603;
 n_K = 8;
